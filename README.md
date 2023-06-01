@@ -8,6 +8,8 @@ A new Flutter project chat app.
 
 
 
+## Priview Video
+https://github.com/SamarthMovaliya/flutter_firebase_practical/assets/121867874/9e08544c-55f3-4f02-af78-0d618c71b5e7
 
 
 
