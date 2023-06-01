@@ -1,4 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_flutter_practical_exam/helper_classes/firebase_firestore.dart';
 import 'package:firebase_flutter_practical_exam/helper_classes/helper_function_class.dart';
+import 'package:firebase_flutter_practical_exam/models/resources.dart';
+import 'package:firebase_flutter_practical_exam/views/Widgets/tiles_of_group.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -9,7 +13,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Stream? groups;
+  late Stream groups;
+  String? groupName;
+  TextEditingController gpnameController = TextEditingController();
+  final globalkey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -17,8 +24,20 @@ class _HomeScreenState extends State<HomeScreen> {
     gettingUserData();
   }
 
+  String getId(String res) {
+    return res.substring(0, res.indexOf("_"));
+  }
+
+  String getName(String res) {
+    return res.substring(res.indexOf("_") + 1);
+  }
+
   gettingUserData() async {
-    await helperFunction.getUserLoggedinStatus();
+    email = await helperFunction.getUserEmail();
+    name = await helperFunction.getUserName();
+
+    groups = await DatabaseServices(uid: FirebaseAuth.instance.currentUser!.uid)
+        .getUserGroups();
   }
 
   @override
@@ -44,7 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
       body: groupList(),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.amber.shade700,
-        onPressed: popUpDialog(),
+        onPressed: () {
+          popUpDialog(context);
+        },
         label: const Text(
           'Add Friend',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -54,12 +75,174 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  popUpDialog() {}
+  popUpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              content: Form(
+                key: globalkey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: TextFormField(
+                        decoration: InputDecoration(
+                          hintText: 'Group name',
+                          hintStyle: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade400,
+                              fontWeight: FontWeight.bold),
+                          contentPadding: EdgeInsets.all(25),
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Icon(
+                              Icons.person,
+                              size: 25,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                          fillColor: Colors.grey.shade200,
+                          focusColor: Colors.grey.shade200,
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(100),
+                            borderSide: const BorderSide(
+                              color: Colors.white,
+                            ),
+                          ),
+                          filled: true,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(100),
+                            borderSide: const BorderSide(color: Colors.white),
+                          ),
+                        ),
+                        controller: gpnameController,
+                        validator: (val) {
+                          if (val!.isEmpty) {
+                            return 'Please enter group name...';
+                          }
+                          return null;
+                        },
+                        onSaved: (val) {
+                          groupName = val;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(Colors.amber.shade50)),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber.shade900,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(
+                      Colors.amber.shade50,
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (globalkey.currentState!.validate()) {
+                      globalkey.currentState!.save();
+                      await DatabaseServices(
+                              uid: FirebaseAuth.instance.currentUser!.uid)
+                          .cretaingGroup(
+                              name!,
+                              FirebaseAuth.instance.currentUser!.uid,
+                              groupName!);
+                      setState(
+                        () {
+                          gpnameController.clear();
+                          groupName = null;
+                        },
+                      );
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text(
+                          'Group Created Successfully',
+                        ),
+                        backgroundColor: Colors.green,
+                      ));
+                    }
+                  },
+                  child: Text(
+                    "Create",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade900),
+                  ),
+                ),
+              ],
+              title: const Text(
+                "Create a Group to chat with your mates",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   groupList() {
     return StreamBuilder(
       stream: groups,
-
+      builder: (context, snapshot) {
+        print(snapshot.data);
+        if (snapshot.hasData) {
+          if (snapshot.data['groups'] != null) {
+            if (snapshot.data['groups'].length != 0) {
+              return ListView.builder(
+                itemCount: snapshot.data['groups'].length,
+                itemBuilder: (context, index) {
+                  int reverseIndex = snapshot.data['groups'].length - index - 1;
+                  return GroupTile(
+                      GroupId: getId(snapshot.data['groups'][reverseIndex]),
+                      GroupName: getName(snapshot.data['groups'][reverseIndex]),
+                      username: snapshot.data['name']);
+                },
+              );
+            } else {
+              return const Center(
+                child: Icon(
+                  Icons.groups,
+                  size: 200,
+                ),
+              );
+            }
+          } else {
+            return const Center(
+              child: Icon(
+                Icons.groups,
+                size: 400,
+              ),
+            );
+          }
+        } else {
+          return Center(
+            child: Icon(
+              Icons.groups,
+              size: 300,
+              color: Colors.grey.shade300,
+            ),
+          );
+        }
+      },
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_flutter_practical_exam/helper_classes/helper_function_class.dart';
 import 'package:firebase_flutter_practical_exam/views/screens/LoginScreen.dart';
+import 'package:firebase_flutter_practical_exam/views/screens/chapScreen.dart';
 import 'package:firebase_flutter_practical_exam/views/screens/entry_point_login_screen.dart';
 import 'package:firebase_flutter_practical_exam/views/screens/homeScreen.dart';
 import 'package:flutter/material.dart';
