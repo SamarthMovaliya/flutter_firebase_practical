@@ -68,4 +68,56 @@ class DatabaseServices {
     print('-----------------');
     return documentSnapshot['admin'];
   }
+
+  getGroupMembers(String groupId) async {
+    return groupCollection.doc(groupId).snapshots();
+  }
+
+  searchGroupbyName(String groupName) {
+    return groupCollection.where('groupName', isEqualTo: groupName).get();
+  }
+
+  Future<bool> isUserJoined(
+      String groupName, String groupId, String username) async {
+    DocumentReference userDocument = userCollection.doc(uid);
+    DocumentSnapshot userSnapshot = await userDocument.get();
+    List<dynamic> groups = await userSnapshot['groups'];
+    if (groups.contains('${groupId}_$groupName')) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future toggle(String groupId, String username, String groupName) async {
+    DocumentReference docref = userCollection.doc(uid);
+    DocumentReference groupref = groupCollection.doc(groupId);
+
+    DocumentSnapshot documentSnapshot = await docref.get();
+    List<dynamic> groups = await documentSnapshot['groups'];
+    if (groups.contains('${groupId}_$groupName')) {
+      await docref.update({
+        'groups': FieldValue.arrayRemove(['${groupId}_$groupName']),
+      });
+      await groupref.update({
+        'members': FieldValue.arrayRemove(['${uid}_$username']),
+      });
+    } else {
+      await docref.update({
+        'groups': FieldValue.arrayUnion(['${groupId}_$groupName']),
+      });
+      await groupref.update({
+        'members': FieldValue.arrayUnion(['${uid}_$username']),
+      });
+    }
+  }
+
+  sendMessage(String groupId, Map<String, dynamic> chatMessageData) async {
+    groupCollection.doc(groupId).collection('messages').add(chatMessageData);
+    groupCollection.doc(groupId).update({
+      'recentMessage': chatMessageData['message'],
+      'recentMessageSender': chatMessageData['sender'],
+      'recentMessageTime': chatMessageData['time'].toString(),
+    });
+  }
 }

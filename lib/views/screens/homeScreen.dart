@@ -13,10 +13,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Stream groups;
+  Stream? groups;
   String? groupName;
   TextEditingController gpnameController = TextEditingController();
   final globalkey = GlobalKey<FormState>();
+
+  gettingUserData() async {
+    email = await helperFunction.getUserEmail();
+    name = await helperFunction.getUserName();
+
+    DatabaseServices(uid: FirebaseAuth.instance.currentUser!.uid)
+        .getUserGroups()
+        .then((val) {
+      setState(() {
+        groups = val;
+      });
+    });
+  }
 
   @override
   void initState() {
@@ -32,22 +45,21 @@ class _HomeScreenState extends State<HomeScreen> {
     return res.substring(res.indexOf("_") + 1);
   }
 
-  gettingUserData() async {
-    email = await helperFunction.getUserEmail();
-    name = await helperFunction.getUserName();
-
-    groups = await DatabaseServices(uid: FirebaseAuth.instance.currentUser!.uid)
-        .getUserGroups();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        actions: const [
-          Icon(Icons.search),
-          SizedBox(
+        actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, 'searchScreen');
+            },
+            child: const Icon(
+              Icons.search,
+            ),
+          ),
+          const SizedBox(
             width: 20,
           ),
         ],
@@ -60,7 +72,53 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      body: groupList(),
+      body: StreamBuilder(
+        stream: groups,
+        builder: (context, snapshot) {
+          gettingUserData();
+
+          if (snapshot.hasData) {
+            if (snapshot.data['groups'] != null) {
+              if (snapshot.data['groups'].length != 0) {
+                return ListView.builder(
+                  itemCount: snapshot.data['groups'].length,
+                  itemBuilder: (context, index) {
+                    int reverseIndex =
+                        snapshot.data['groups'].length - index - 1;
+                    return GroupTile(
+                        GroupId: getId(snapshot.data['groups'][reverseIndex]),
+                        GroupName:
+                            getName(snapshot.data['groups'][reverseIndex]),
+                        username: snapshot.data['name']);
+                  },
+                );
+              } else {
+                return const Center(
+                  child: Icon(
+                    Icons.groups,
+                    size: 200,
+                  ),
+                );
+              }
+            } else {
+              return const Center(
+                child: Icon(
+                  Icons.groups,
+                  size: 400,
+                ),
+              );
+            }
+          } else {
+            return Center(
+              child: Icon(
+                Icons.groups,
+                size: 300,
+                color: Colors.grey.shade300,
+              ),
+            );
+          }
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.amber.shade700,
         onPressed: () {
@@ -195,53 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         );
-      },
-    );
-  }
-
-  groupList() {
-    return StreamBuilder(
-      stream: groups,
-      builder: (context, snapshot) {
-        print(snapshot.data);
-        if (snapshot.hasData) {
-          if (snapshot.data['groups'] != null) {
-            if (snapshot.data['groups'].length != 0) {
-              return ListView.builder(
-                itemCount: snapshot.data['groups'].length,
-                itemBuilder: (context, index) {
-                  int reverseIndex = snapshot.data['groups'].length - index - 1;
-                  return GroupTile(
-                      GroupId: getId(snapshot.data['groups'][reverseIndex]),
-                      GroupName: getName(snapshot.data['groups'][reverseIndex]),
-                      username: snapshot.data['name']);
-                },
-              );
-            } else {
-              return const Center(
-                child: Icon(
-                  Icons.groups,
-                  size: 200,
-                ),
-              );
-            }
-          } else {
-            return const Center(
-              child: Icon(
-                Icons.groups,
-                size: 400,
-              ),
-            );
-          }
-        } else {
-          return Center(
-            child: Icon(
-              Icons.groups,
-              size: 300,
-              color: Colors.grey.shade300,
-            ),
-          );
-        }
       },
     );
   }

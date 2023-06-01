@@ -4,6 +4,7 @@ import 'package:firebase_flutter_practical_exam/views/screens/LoginScreen.dart';
 import 'package:firebase_flutter_practical_exam/views/screens/chapScreen.dart';
 import 'package:firebase_flutter_practical_exam/views/screens/entry_point_login_screen.dart';
 import 'package:firebase_flutter_practical_exam/views/screens/homeScreen.dart';
+import 'package:firebase_flutter_practical_exam/views/screens/search_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
@@ -51,6 +52,7 @@ class _MyAppState extends State<MyApp> {
         '/': (context) => HomeScreen(),
         'entryLoginScreen': (context) => EntryLoginScreen(),
         'loginScreen': (context) => LoginScreen(),
+        'searchScreen': (context) => SearchScreen(),
       },
     );
   }
